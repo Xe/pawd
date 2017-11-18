@@ -48,21 +48,21 @@ func TestUsersStorm(t *testing.T) {
 	})
 
 	t.Run("check_password_valid", func(t *testing.T) {
-		ok, err := us.CheckPassword(ctx, "me@me.me", "hunter2", "")
+		u, err := us.CheckPassword(ctx, "me@me.me", "hunter2", "")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !ok {
+		if u == nil {
 			t.Fatal("password mismatch")
 		}
 	})
 
 	t.Run("check_password_invalid", func(t *testing.T) {
-		ok, err := us.CheckPassword(ctx, "me@me.me", "transformers are cool", "")
+		u, err := us.CheckPassword(ctx, "me@me.me", "transformers are cool", "")
 		if err == nil {
 			t.Fatal(err)
 		}
-		if ok {
+		if u != nil {
 			t.Fatal("password should not have matched but did")
 		}
 	})

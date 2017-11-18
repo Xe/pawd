@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/Xe/ln"
 	"github.com/Xe/uuid"
 	"github.com/asdine/storm"
 	"golang.org/x/crypto/bcrypt"
@@ -28,6 +29,26 @@ type User struct {
 	Admin bool
 }
 
+// F ields for logging.
+func (u User) F() ln.F {
+	f := ln.F{
+		"user_id":               u.ID,
+		"user_email":            u.Email,
+		"user_creation_date":    u.CreationDate,
+		"user_last_access_date": u.LastAccessDate,
+		"user_admin":            u.Admin,
+	}
+
+	if u.Suspended {
+		f["user_suspended"] = true
+		f["user_suspended_date"] = u.SuspendedDate
+		f["user_suspended_reason"] = u.SuspendedReason
+		f["user_suspended_admin"] = u.SuspendedAdmin
+	}
+
+	return f
+}
+
 // Users are the datastore calls for user management.
 type Users interface {
 	// Create s a new user with the given email, password and totp settings.
@@ -40,7 +61,7 @@ type Users interface {
 
 	// CheckPassword checks a given email address, password and optional TOTP challenge
 	// against the values in the database and returns true if they match. This calls UpdateLastSeen.
-	CheckPassword(ctx context.Context, email, password, totpChallenge string) (valid bool, err error)
+	CheckPassword(ctx context.Context, email, password, totpChallenge string) (*User, error)
 
 	// Get fetches an individual user by ID.
 	Get(ctx context.Context, userID string) (*User, error)
@@ -116,19 +137,19 @@ func (u *usersStorm) UpdateLastSeen(ctx context.Context, userID string) error {
 	return nil
 }
 
-func (u *usersStorm) CheckPassword(ctx context.Context, email, password, totpChallenge string) (bool, error) {
+func (u *usersStorm) CheckPassword(ctx context.Context, email, password, totpChallenge string) (*User, error) {
 	var uu User
 	err := u.db.One("Email", email, &uu)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	err = bcrypt.CompareHashAndPassword(uu.PasswordHash, []byte(password))
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	return true, u.UpdateLastSeen(ctx, uu.ID)
+	return &uu, u.UpdateLastSeen(ctx, uu.ID)
 }
 
 func (u *usersStorm) Get(ctx context.Context, userID string) (*User, error) {

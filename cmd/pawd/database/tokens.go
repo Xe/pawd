@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/Xe/ln"
 	"github.com/Xe/uuid"
 	"github.com/asdine/storm"
 )
@@ -20,6 +21,17 @@ type Token struct {
 	// Deleted flags if the token shows up to users or not. If this is set to
 	// true, this token cannot be used in any API calls.
 	Deleted bool
+}
+
+// F ields for logging.
+func (t Token) F() ln.F {
+	f := ln.F{
+		"token_id":            t.ID,
+		"token_userid":        t.UserID,
+		"token_creation_date": t.CreationDate,
+	}
+
+	return f
 }
 
 type Tokens interface {
